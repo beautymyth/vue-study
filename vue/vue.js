@@ -63,6 +63,8 @@ function isPrimitive (value) {
  * Quick object check - this is primarily used to tell
  * Objects from primitive values when we know the value
  * is a JSON-compliant type.
+ * 快速对象检查
+ * 当我们知道该值是符合json的类型时，它主要用于区分对象和原语值
  */
 function isObject (obj) {
   return obj !== null && typeof obj === 'object'
@@ -70,9 +72,14 @@ function isObject (obj) {
 
 /**
  * Get the raw type string of a value e.g. [object Object]
+ * 获取值的原始类型
  */
 var _toString = Object.prototype.toString;
 
+/**
+ * 获取值的原始类型
+ * 如({}).toString().slice(8, -1)返回Object
+ */
 function toRawType (value) {
   return _toString.call(value).slice(8, -1)
 }
@@ -80,17 +87,22 @@ function toRawType (value) {
 /**
  * Strict object type check. Only returns true
  * for plain JavaScript objects.
+ * 严格的对象类型检查。仅对纯JavaScript对象返回true
  */
 function isPlainObject (obj) {
   return _toString.call(obj) === '[object Object]'
 }
 
+/**
+ * 检查对象是否为正则表达式
+ */
 function isRegExp (v) {
   return _toString.call(v) === '[object RegExp]'
 }
 
 /**
  * Check if val is a valid array index.
+ * 检查值是否为有效的数组下标
  */
 function isValidArrayIndex (val) {
   var n = parseFloat(String(val));
@@ -99,6 +111,7 @@ function isValidArrayIndex (val) {
 
 /**
  * Convert a value to a string that is actually rendered.
+ * 将值转换为实际呈现的字符串
  */
 function toString (val) {
   return val == null
@@ -111,6 +124,7 @@ function toString (val) {
 /**
  * Convert a input value to a number for persistence.
  * If the conversion fails, return original string.
+ * 将值转换为数字，转换失败返回原值
  */
 function toNumber (val) {
   var n = parseFloat(val);
@@ -4934,6 +4948,12 @@ function getComponentName (opts) {
   return opts && (opts.Ctor.options.name || opts.tag)
 }
 
+/**
+ * 检查name是否被pattern匹配
+ * @param  {[array,string,regexp]} pattern [description]
+ * @param  {[type]} name    [description]
+ * @return {[type]}         [description]
+ */
 function matches (pattern, name) {
   if (Array.isArray(pattern)) {
     return pattern.indexOf(name) > -1
