@@ -134,6 +134,7 @@ function toNumber (val) {
 /**
  * Make a map and return a function for checking if a key
  * is in that map.
+ * 创建一个用于检查值是否存在的函数
  */
 function makeMap (
   str,
@@ -151,16 +152,19 @@ function makeMap (
 
 /**
  * Check if a tag is a built-in tag.
+ * 检查标记是否为内置标记
  */
 var isBuiltInTag = makeMap('slot,component', true);
 
 /**
  * Check if a attribute is a reserved attribute.
+ * 检查属性是否为保留属性
  */
 var isReservedAttribute = makeMap('key,ref,slot,slot-scope,is');
 
 /**
  * Remove an item from an array
+ * 从数组中移除元素
  */
 function remove (arr, item) {
   if (arr.length) {
@@ -173,6 +177,7 @@ function remove (arr, item) {
 
 /**
  * Check whether the object has the property.
+ * 检查对象是否具有该属性
  */
 var hasOwnProperty = Object.prototype.hasOwnProperty;
 function hasOwn (obj, key) {
@@ -181,8 +186,10 @@ function hasOwn (obj, key) {
 
 /**
  * Create a cached version of a pure function.
+ * 函数的结果缓存，根据输入str来缓存函数的执行结果
  */
 function cached (fn) {
+  //闭包
   var cache = Object.create(null);
   return (function cachedFn (str) {
     var hit = cache[str];
@@ -192,6 +199,8 @@ function cached (fn) {
 
 /**
  * Camelize a hyphen-delimited string.
+ * 将[-a]替换为[A]
+ * 如[-aa-bb-cc--]->[AaBbCc--]
  */
 var camelizeRE = /-(\w)/g;
 var camelize = cached(function (str) {
@@ -200,6 +209,7 @@ var camelize = cached(function (str) {
 
 /**
  * Capitalize a string.
+ * 字符串首字母大写
  */
 var capitalize = cached(function (str) {
   return str.charAt(0).toUpperCase() + str.slice(1)
@@ -207,6 +217,8 @@ var capitalize = cached(function (str) {
 
 /**
  * Hyphenate a camelCase string.
+ * 将[aA]替换为[a-a]
+ * 如[aAAbBcC]->[a-a-ab-bc-c]
  */
 var hyphenateRE = /\B([A-Z])/g;
 var hyphenate = cached(function (str) {
@@ -240,12 +252,17 @@ function nativeBind (fn, ctx) {
   return fn.bind(ctx)
 }
 
+/**
+ * 将函数绑定到对象，函数体的this可指向对象内部
+ */
 var bind = Function.prototype.bind
   ? nativeBind
   : polyfillBind;
 
 /**
  * Convert an Array-like object to a real Array.
+ * 将类数组对象转换为真实数组
+ * 如{'0': 1, '1': 2, '2': 3, 'length': 3}->[1,2,3]
  */
 function toArray (list, start) {
   start = start || 0;
@@ -259,6 +276,7 @@ function toArray (list, start) {
 
 /**
  * Mix properties into target object.
+ * 将源对象的属性合并到目标对象
  */
 function extend (to, _from) {
   for (var key in _from) {
@@ -269,6 +287,7 @@ function extend (to, _from) {
 
 /**
  * Merge an Array of Objects into a single Object.
+ * 将多个对象中的属性合并在一个对象中
  */
 function toObject (arr) {
   var res = {};
@@ -284,21 +303,25 @@ function toObject (arr) {
  * Perform no operation.
  * Stubbing args to make Flow happy without leaving useless transpiled code
  * with ...rest (https://flow.org/blog/2017/05/07/Strict-Function-Call-Arity/)
+ * 空方法
  */
 function noop (a, b, c) {}
 
 /**
  * Always return false.
+ * 始终返回false
  */
 var no = function (a, b, c) { return false; };
 
 /**
  * Return same value
+ * 返回原值
  */
 var identity = function (_) { return _; };
 
 /**
  * Generate a static keys string from compiler modules.
+ * 从编译器模块中生成一个静态键字符串
  */
 function genStaticKeys (modules) {
   return modules.reduce(function (keys, m) {
@@ -309,6 +332,7 @@ function genStaticKeys (modules) {
 /**
  * Check if two values are loosely equal - that is,
  * if they are plain objects, do they have the same shape?
+ * 检查对象是否全相等
  */
 function looseEqual (a, b) {
   if (a === b) { return true }
@@ -343,6 +367,9 @@ function looseEqual (a, b) {
   }
 }
 
+/**
+ * 查询数组中与给定val全相等的index
+ */
 function looseIndexOf (arr, val) {
   for (var i = 0; i < arr.length; i++) {
     if (looseEqual(arr[i], val)) { return i }
@@ -352,6 +379,7 @@ function looseIndexOf (arr, val) {
 
 /**
  * Ensure a function is called only once.
+ * 只能执行一次的函数
  */
 function once (fn) {
   var called = false;
@@ -365,12 +393,18 @@ function once (fn) {
 
 var SSR_ATTR = 'data-server-rendered';
 
+/**
+ * 资源类型
+ */
 var ASSET_TYPES = [
   'component',
   'directive',
   'filter'
 ];
 
+/**
+ * 生命周期钩子
+ */
 var LIFECYCLE_HOOKS = [
   'beforeCreate',
   'created',
@@ -396,21 +430,25 @@ var config = ({
 
   /**
    * Whether to suppress warnings.
+   * 是否不显示警告
    */
   silent: false,
 
   /**
    * Show production mode tip message on boot?
+   * 在引导时显示生产模式提示消息?
    */
   productionTip: "development" !== 'production',
 
   /**
    * Whether to enable devtools
+   * 是否启用devtools
    */
   devtools: "development" !== 'production',
 
   /**
    * Whether to record perf
+   * 是否记录perf
    */
   performance: false,
 
@@ -426,11 +464,13 @@ var config = ({
 
   /**
    * Ignore certain custom elements
+   * 忽略某些定制元素
    */
   ignoredElements: [],
 
   /**
    * Custom user key aliases for v-on
+   * v-on的用户自定义键别名
    */
   // $flow-disable-line
   keyCodes: Object.create(null),
@@ -438,34 +478,42 @@ var config = ({
   /**
    * Check if a tag is reserved so that it cannot be registered as a
    * component. This is platform-dependent and may be overwritten.
+   * 检查标记是否保留，以便不能将其注册为组件。
+   * 这依赖于平台，可能会被覆盖
    */
   isReservedTag: no,
 
   /**
    * Check if an attribute is reserved so that it cannot be used as a component
    * prop. This is platform-dependent and may be overwritten.
+   * 检查属性是否保留，以便不能将其用作组件支柱。这依赖于平台，可能会被覆盖。
    */
   isReservedAttr: no,
 
   /**
    * Check if a tag is an unknown element.
    * Platform-dependent.
+   * 检查标记是否为未知元素。平台相关的。
    */
   isUnknownElement: no,
 
   /**
    * Get the namespace of an element
+   * 获取元素的名称空间
    */
   getTagNamespace: noop,
 
   /**
    * Parse the real tag name for the specific platform.
+   * 解析特定平台的实际标记名称
    */
   parsePlatformTagName: identity,
 
   /**
    * Check if an attribute must be bound using property, e.g. value
    * Platform-dependent.
+   * 检查是否必须使用属性(例如value)绑定属性
+   * 平台相关的
    */
   mustUseProp: no,
 
@@ -487,6 +535,7 @@ function isReserved (str) {
 
 /**
  * Define a property.
+ * 为对象定义一个属性
  */
 function def (obj, key, val, enumerable) {
   Object.defineProperty(obj, key, {
@@ -1921,6 +1970,9 @@ var measure;
 var initProxy;
 
 {
+    /**
+     * 允许的全局方法
+     */
   var allowedGlobals = makeMap(
     'Infinity,undefined,NaN,isFinite,isNaN,' +
     'parseFloat,parseInt,decodeURI,decodeURIComponent,encodeURI,encodeURIComponent,' +
@@ -1943,6 +1995,9 @@ var initProxy;
     typeof Proxy !== 'undefined' && isNative(Proxy);
 
   if (hasProxy) {
+      /**
+       * 是否内建修饰符
+       */
     var isBuiltInModifier = makeMap('stop,prevent,self,ctrl,shift,alt,meta,exact');
     config.keyCodes = new Proxy(config.keyCodes, {
       set: function set (target, key, value) {
@@ -5152,9 +5207,16 @@ Vue.version = '2.5.17';
 
 // these are reserved for web because they are directly compiled away
 // during template compilation
+// 这些是为web保留的，因为它们是在模板编译期间直接编译掉的
+/**
+ * 是否保留样式属性
+ */
 var isReservedAttr = makeMap('style,class');
 
 // attributes that should be using props for binding
+/**
+ * 是否需要使用prop绑定value
+ */
 var acceptValue = makeMap('input,textarea,option,select,progress');
 var mustUseProp = function (tag, type, attr) {
   return (
@@ -5165,8 +5227,14 @@ var mustUseProp = function (tag, type, attr) {
   )
 };
 
+/**
+ * 是否可枚举属性
+ */
 var isEnumeratedAttr = makeMap('contenteditable,draggable,spellcheck');
 
+/**
+ * 是否布尔值属性
+ */
 var isBooleanAttr = makeMap(
   'allowfullscreen,async,autofocus,autoplay,checked,compact,controls,declare,' +
   'default,defaultchecked,defaultmuted,defaultselected,defer,disabled,' +
@@ -5278,6 +5346,9 @@ var namespaceMap = {
   math: 'http://www.w3.org/1998/Math/MathML'
 };
 
+/**
+ * 是否html标签
+ */
 var isHTMLTag = makeMap(
   'html,body,base,head,link,meta,style,title,' +
   'address,article,aside,footer,header,h1,h2,h3,h4,h5,h6,hgroup,nav,section,' +
@@ -5294,6 +5365,9 @@ var isHTMLTag = makeMap(
 
 // this map is intentionally selective, only covering SVG elements that may
 // contain child elements.
+/**
+ * 此映射是有意选择的，只覆盖可能包含子元素的SVG元素
+ */
 var isSVG = makeMap(
   'svg,animate,circle,clippath,cursor,defs,desc,ellipse,filter,font-face,' +
   'foreignObject,g,glyph,image,line,marker,mask,missing-glyph,path,pattern,' +
@@ -5344,6 +5418,9 @@ function isUnknownElement (tag) {
   }
 }
 
+/**
+ * 是否可输入input类型
+ */
 var isTextInputType = makeMap('text,number,password,search,email,tel,url');
 
 /*  */
@@ -6025,6 +6102,9 @@ function createPatchFunction (backend) {
   // are already rendered on the client or has no need for initialization
   // Note: style is excluded because it relies on initial clone for future
   // deep updates (#7063).
+  /**
+   * 已渲染的模块，可跳过创建hook
+   */
   var isRenderedModule = makeMap('attrs,class,staticClass,staticStyle,key');
 
   // Note: this is a browser-only function so we can assume elms are DOM nodes.
@@ -8776,8 +8856,10 @@ var he = {
   }
 }
 
-/*  */
 
+/**
+ * 是否一元标签
+ */
 var isUnaryTag = makeMap(
   'area,base,br,col,embed,frame,hr,img,input,isindex,keygen,' +
   'link,meta,param,source,track,wbr'
@@ -8785,12 +8867,18 @@ var isUnaryTag = makeMap(
 
 // Elements that you can, intentionally, leave open
 // (and which close themselves)
+/**
+ * 您可以有意地保持打开(以及关闭它们自己)的元素
+ */
 var canBeLeftOpenTag = makeMap(
   'colgroup,dd,dt,li,options,p,td,tfoot,th,thead,tr,source'
 );
 
 // HTML5 tags https://html.spec.whatwg.org/multipage/indices.html#elements-3
 // Phrasing Content https://html.spec.whatwg.org/multipage/dom.html#phrasing-content
+/**
+ * 非语言标签
+ */
 var isNonPhrasingTag = makeMap(
   'address,article,aside,base,blockquote,body,caption,col,colgroup,dd,' +
   'details,dialog,div,dl,dt,fieldset,figcaption,figure,footer,form,' +
@@ -8830,6 +8918,9 @@ var IS_REGEX_CAPTURING_BROKEN = false;
 });
 
 // Special Elements (can contain anything)
+/**
+ * 是否纯文本元素
+ */
 var isPlainTextElement = makeMap('script,style,textarea', true);
 var reCache = {};
 
@@ -8845,6 +8936,9 @@ var encodedAttr = /&(?:lt|gt|quot|amp);/g;
 var encodedAttrWithNewLines = /&(?:lt|gt|quot|amp|#10|#9);/g;
 
 // #5992
+/**
+ * 是否忽略换行标签
+ */
 var isIgnoreNewlineTag = makeMap('pre,textarea', true);
 var shouldIgnoreFirstNewline = function (tag, html) { return tag && isIgnoreNewlineTag(tag) && html[0] === '\n'; };
 
