@@ -527,6 +527,7 @@ var config = ({
 
 /**
  * Check if a string starts with $ or _
+ * 字符串是否以$或_开头
  */
 function isReserved (str) {
   var c = (str + '').charCodeAt(0);
@@ -627,6 +628,10 @@ var hasSymbol =
   typeof Symbol !== 'undefined' && isNative(Symbol) &&
   typeof Reflect !== 'undefined' && isNative(Reflect.ownKeys);
 
+
+/**
+ * 集合对象
+ */
 var _Set;
 /* istanbul ignore if */ // $flow-disable-line
 if (typeof Set !== 'undefined' && isNative(Set)) {
