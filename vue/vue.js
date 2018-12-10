@@ -527,6 +527,7 @@ var config = ({
 
 /**
  * Check if a string starts with $ or _
+ * 字符串是否以$或_开头
  */
 function isReserved (str) {
   var c = (str + '').charCodeAt(0);
@@ -760,26 +761,41 @@ var uid = 0;
 /**
  * A dep is an observable that can have multiple
  * directives subscribing to it.
+ * dep是可观察的，可以被多个指令订阅
  */
 var Dep = function Dep () {
   this.id = uid++;
   this.subs = [];
 };
 
+/**
+ * 添加子项
+ */
 Dep.prototype.addSub = function addSub (sub) {
   this.subs.push(sub);
 };
 
+/**
+ * 移除子项
+ */
 Dep.prototype.removeSub = function removeSub (sub) {
   remove(this.subs, sub);
 };
 
+/**
+ * 添加依赖
+ * 如果Dep有目标节点，则将当前对象添加到目标节点
+ */
 Dep.prototype.depend = function depend () {
   if (Dep.target) {
     Dep.target.addDep(this);
   }
 };
 
+/**
+ * 通知子项
+ * 执行子项的update方法
+ */
 Dep.prototype.notify = function notify () {
   // stabilize the subscriber list first
   var subs = this.subs.slice();
@@ -794,11 +810,17 @@ Dep.prototype.notify = function notify () {
 Dep.target = null;
 var targetStack = [];
 
+/**
+ * 从目标节点添加到堆栈
+ */
 function pushTarget (_target) {
   if (Dep.target) { targetStack.push(Dep.target); }
   Dep.target = _target;
 }
 
+/**
+ * 从目标节点堆栈中获取
+ */
 function popTarget () {
   Dep.target = targetStack.pop();
 }
