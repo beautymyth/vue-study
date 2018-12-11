@@ -807,11 +807,13 @@ Dep.prototype.notify = function notify () {
 // the current target watcher being evaluated.
 // this is globally unique because there could be only one
 // watcher being evaluated at any time.
+//正在评估的当前目标监视程序。
+//这是全局惟一的，因为在任何时候都只能评估一个观察者
 Dep.target = null;
 var targetStack = [];
 
 /**
- * 从目标节点添加到堆栈
+ * 将目标节点添加到堆栈
  */
 function pushTarget (_target) {
   if (Dep.target) { targetStack.push(Dep.target); }
@@ -819,7 +821,7 @@ function pushTarget (_target) {
 }
 
 /**
- * 从目标节点堆栈中获取
+ * 从堆栈中获取目标节点
  */
 function popTarget () {
   Dep.target = targetStack.pop();
@@ -977,11 +979,14 @@ function toggleObserving (value) {
  * object. Once attached, the observer converts the target
  * object's property keys into getter/setters that
  * collect dependencies and dispatch updates.
+ * 为对象附加Observer类，用于监控值的变化
+ * 一旦附加，观察者将目标对象的属性键转换为收集依赖项和分派更新的getter/setter。
  */
 var Observer = function Observer (value) {
   this.value = value;
   this.dep = new Dep();
   this.vmCount = 0;
+  //绑定observer到对象
   def(value, '__ob__', this);
   if (Array.isArray(value)) {
     var augment = hasProto
