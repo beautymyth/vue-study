@@ -761,30 +761,31 @@ var uid = 0;
 /**
  * A dep is an observable that can have multiple
  * directives subscribing to it.
- * dep是可观察的，可以被多个指令订阅
+ * dep(dependency-数据依赖)是可观察的，可以被多个指令订阅
  */
 var Dep = function Dep () {
   this.id = uid++;
+  //与依赖相关的watcher
   this.subs = [];
 };
 
 /**
- * 添加子项
+ * 添加watcher
  */
 Dep.prototype.addSub = function addSub (sub) {
   this.subs.push(sub);
 };
 
 /**
- * 移除子项
+ * 移除watcher
  */
 Dep.prototype.removeSub = function removeSub (sub) {
   remove(this.subs, sub);
 };
 
 /**
- * 添加依赖
- * 如果Dep有目标节点，则将当前对象添加到目标节点
+ * 为watcher设置数据依赖
+ * 将当前dep设置到watcher中
  */
 Dep.prototype.depend = function depend () {
   if (Dep.target) {
@@ -793,8 +794,8 @@ Dep.prototype.depend = function depend () {
 };
 
 /**
- * 通知子项
- * 执行子项的update方法
+ * 通知watcher
+ * 执行watcher的update方法
  */
 Dep.prototype.notify = function notify () {
   // stabilize the subscriber list first
@@ -807,13 +808,13 @@ Dep.prototype.notify = function notify () {
 // the current target watcher being evaluated.
 // this is globally unique because there could be only one
 // watcher being evaluated at any time.
-//正在评估的当前目标监视程序。
-//这是全局惟一的，因为在任何时候都只能评估一个观察者
+//正在运行的watcher，同时只能有一个watcher
 Dep.target = null;
+//watcher堆栈
 var targetStack = [];
 
 /**
- * 将目标节点添加到堆栈
+ * 将watcher添加到堆栈
  */
 function pushTarget (_target) {
   if (Dep.target) { targetStack.push(Dep.target); }
@@ -821,7 +822,7 @@ function pushTarget (_target) {
 }
 
 /**
- * 从堆栈中获取目标节点
+ * 从堆栈中获取watcher
  */
 function popTarget () {
   Dep.target = targetStack.pop();
@@ -983,15 +984,17 @@ function toggleObserving (value) {
  * 一旦附加，观察者将目标对象的属性键转换为收集依赖项和分派更新的getter/setter。
  */
 var Observer = function Observer (value) {
+  //ob对象添加value(形成你中有我，我中有你的现象)与dep对象
   this.value = value;
   this.dep = new Dep();
   this.vmCount = 0;
-  //绑定observer到对象
+  
+  //绑定observer到value对象
   def(value, '__ob__', this);
+  
+  
   if (Array.isArray(value)) {
-    var augment = hasProto
-      ? protoAugment
-      : copyAugment;
+    var augment = hasProto ? protoAugment : copyAugment;
     augment(value, arrayMethods, arrayKeys);
     this.observeArray(value);
   } else {
@@ -1003,6 +1006,7 @@ var Observer = function Observer (value) {
  * Walk through each property and convert them into
  * getter/setters. This method should only be called when
  * value type is Object.
+ * 将对象中的属性转为getter与setter
  */
 Observer.prototype.walk = function walk (obj) {
   var keys = Object.keys(obj);
@@ -1013,6 +1017,7 @@ Observer.prototype.walk = function walk (obj) {
 
 /**
  * Observe a list of Array items.
+ * 为一组对象设置ob类
  */
 Observer.prototype.observeArray = function observeArray (items) {
   for (var i = 0, l = items.length; i < l; i++) {
@@ -1048,6 +1053,8 @@ function copyAugment (target, src, keys) {
  * Attempt to create an observer instance for a value,
  * returns the new observer if successfully observed,
  * or the existing observer if the value already has one.
+ * 为value创建观察者实例
+ * 如果已存在ob则直接返回
  */
 function observe (value, asRootData) {
   if (!isObject(value) || value instanceof VNode) {
@@ -1055,6 +1062,7 @@ function observe (value, asRootData) {
   }
   var ob;
   if (hasOwn(value, '__ob__') && value.__ob__ instanceof Observer) {
+    //value已存在ob
     ob = value.__ob__;
   } else if (
     shouldObserve &&
@@ -1063,16 +1071,25 @@ function observe (value, asRootData) {
     Object.isExtensible(value) &&
     !value._isVue
   ) {
+    //创建新的ob
     ob = new Observer(value);
   }
   if (asRootData && ob) {
     ob.vmCount++;
   }
+  
+  //返回ob
   return ob
 }
 
 /**
  * Define a reactive property on an Object.
+ * 为对象定义响应属性
+ * obj：被观察的对象
+ * key：对象的key
+ * val：key对应的value，默认为obj[key]
+ * customSetter：用户自定义setter方法
+ * shallow:浅观察，不观察对象value中的子对象
  */
 function defineReactive (
   obj,
@@ -1081,47 +1098,71 @@ function defineReactive (
   customSetter,
   shallow
 ) {
+  //定义依赖
   var dep = new Dep();
-
+  
+  //属性存在且可配置
   var property = Object.getOwnPropertyDescriptor(obj, key);
   if (property && property.configurable === false) {
     return
   }
 
   // cater for pre-defined getter/setters
+  //兼容已经定义的getter/setters
   var getter = property && property.get;
   if (!getter && arguments.length === 2) {
+    //如果还未设置get且参数只有(obj,key)，初始化val
     val = obj[key];
   }
   var setter = property && property.set;
-
+  
+  //子观察者
+  //非浅观察，还需要观察value(如果是对象的话)
   var childOb = !shallow && observe(val);
+  
+  //定义属性的getter与setter
   Object.defineProperty(obj, key, {
     enumerable: true,
     configurable: true,
+    //获取对象属性的值
     get: function reactiveGetter () {
+      //获取实际value
       var value = getter ? getter.call(obj) : val;
+      
+      //存在运行的watcher
       if (Dep.target) {
+        //将dep添加到当前运行的watcher
         dep.depend();
         if (childOb) {
+          //将子观察者的dep添加到当前运行的watcher
           childOb.dep.depend();
           if (Array.isArray(value)) {
+            //递归将value的dep添加到当前运行的watcher
             dependArray(value);
           }
         }
       }
+      
+      //返回value
       return value
     },
+    //设置对象属性的值
     set: function reactiveSetter (newVal) {
+      //获取实际value
       var value = getter ? getter.call(obj) : val;
+      
       /* eslint-disable no-self-compare */
+      //值是否有变化
       if (newVal === value || (newVal !== newVal && value !== value)) {
         return
       }
       /* eslint-enable no-self-compare */
+      //调用自定义setter
       if ("development" !== 'production' && customSetter) {
         customSetter();
       }
+      
+      //设置新值
       if (setter) {
         setter.call(obj, newVal);
       } else {
@@ -1137,22 +1178,30 @@ function defineReactive (
  * Set a property on an object. Adds the new property and
  * triggers change notification if the property doesn't
  * already exist.
+ * 为对象添加属性
  */
 function set (target, key, val) {
+  //对象是否有效
   if ("development" !== 'production' &&
     (isUndef(target) || isPrimitive(target))
   ) {
     warn(("Cannot set reactive property on undefined, null, or primitive value: " + ((target))));
   }
+  
+  //对象为数组
   if (Array.isArray(target) && isValidArrayIndex(key)) {
     target.length = Math.max(target.length, key);
     target.splice(key, 1, val);
     return val
   }
+  
+  //属性已存在
   if (key in target && !(key in Object.prototype)) {
     target[key] = val;
     return val
   }
+  
+  //不能为vue，$data，_data添加属性
   var ob = (target).__ob__;
   if (target._isVue || (ob && ob.vmCount)) {
     "development" !== 'production' && warn(
@@ -1161,10 +1210,14 @@ function set (target, key, val) {
     );
     return val
   }
+  
+  //对象是否有观察者类
   if (!ob) {
     target[key] = val;
     return val
   }
+  
+  //定义响应属性，同时触发回调
   defineReactive(ob.value, key, val);
   ob.dep.notify();
   return val
@@ -1172,17 +1225,23 @@ function set (target, key, val) {
 
 /**
  * Delete a property and trigger change if necessary.
+ * 从对象中删除属性
  */
 function del (target, key) {
+  //对象是否有效
   if ("development" !== 'production' &&
     (isUndef(target) || isPrimitive(target))
   ) {
     warn(("Cannot delete reactive property on undefined, null, or primitive value: " + ((target))));
   }
+  
+  //对象为数组
   if (Array.isArray(target) && isValidArrayIndex(key)) {
     target.splice(key, 1);
     return
   }
+  
+  //不能删除vue，$data，_data中的属性
   var ob = (target).__ob__;
   if (target._isVue || (ob && ob.vmCount)) {
     "development" !== 'production' && warn(
@@ -1191,10 +1250,14 @@ function del (target, key) {
     );
     return
   }
+  
+  //是否自有属性
   if (!hasOwn(target, key)) {
     return
   }
   delete target[key];
+  
+  //触发watcher回调
   if (!ob) {
     return
   }
@@ -1204,6 +1267,7 @@ function del (target, key) {
 /**
  * Collect dependencies on array elements when the array is touched, since
  * we cannot intercept array element access like property getters.
+ * 递归将value的dep添加到当前运行的watcher
  */
 function dependArray (value) {
   for (var e = (void 0), i = 0, l = value.length; i < l; i++) {
