@@ -42,3 +42,4 @@ var app = new Vue({
     methods: userMethod
 });
 
+console.log(app);

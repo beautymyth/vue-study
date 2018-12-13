@@ -568,9 +568,11 @@ function parsePath (path) {
 /*  */
 
 // can we use __proto__?
+//是否可使用原型链
 var hasProto = '__proto__' in {};
 
 // Browser environment sniffing
+//浏览器检查
 var inBrowser = typeof window !== 'undefined';
 var inWeex = typeof WXEnvironment !== 'undefined' && !!WXEnvironment.platform;
 var weexPlatform = inWeex && WXEnvironment.platform.toLowerCase();
@@ -583,6 +585,7 @@ var isIOS = (UA && /iphone|ipad|ipod|ios/.test(UA)) || (weexPlatform === 'ios');
 var isChrome = UA && /chrome\/\d+/.test(UA) && !isEdge;
 
 // Firefox has a "watch" function on Object.prototype...
+//火狐浏览器自带的watch方法
 var nativeWatch = ({}).watch;
 
 var supportsPassive = false;
@@ -755,7 +758,7 @@ var formatComponentName = (noop);
 
 /*  */
 
-
+//dep序列号，new Dep时，此值递增
 var uid = 0;
 
 /**
@@ -922,6 +925,9 @@ function cloneVNode (vnode) {
 var arrayProto = Array.prototype;
 var arrayMethods = Object.create(arrayProto);
 
+/**
+ * 需要扩展的数组方法
+ */
 var methodsToPatch = [
   'push',
   'pop',
@@ -934,15 +940,23 @@ var methodsToPatch = [
 
 /**
  * Intercept mutating methods and emit events
+ * 拦截需要扩展的方法并触发事件
  */
 methodsToPatch.forEach(function (method) {
   // cache original method
+  //缓存原方法
   var original = arrayProto[method];
+  
+  //扩展方法
   def(arrayMethods, method, function mutator () {
+    //获取方法的参数
     var args = [], len = arguments.length;
     while ( len-- ) args[ len ] = arguments[ len ];
-
+    
+    //通过原方法获得结果
     var result = original.apply(this, args);
+    
+    //为新数组元素添加ob
     var ob = this.__ob__;
     var inserted;
     switch (method) {
@@ -955,14 +969,16 @@ methodsToPatch.forEach(function (method) {
         break
     }
     if (inserted) { ob.observeArray(inserted); }
-    // notify change
+    
+    //触发watch回调
     ob.dep.notify();
+    
+    //返回结果
     return result
   });
 });
 
-/*  */
-
+//需要扩展的数组方法名
 var arrayKeys = Object.getOwnPropertyNames(arrayMethods);
 
 /**
@@ -992,7 +1008,7 @@ var Observer = function Observer (value) {
   //绑定observer到value对象
   def(value, '__ob__', this);
   
-  
+  //根据情况使用不同的方法来处理属性
   if (Array.isArray(value)) {
     var augment = hasProto ? protoAugment : copyAugment;
     augment(value, arrayMethods, arrayKeys);
@@ -1030,6 +1046,7 @@ Observer.prototype.observeArray = function observeArray (items) {
 /**
  * Augment an target Object or Array by intercepting
  * the prototype chain using __proto__
+ * 通过使用__proto__拦截原型链来扩展原对象
  */
 function protoAugment (target, src, keys) {
   /* eslint-disable no-proto */
@@ -1040,6 +1057,7 @@ function protoAugment (target, src, keys) {
 /**
  * Augment an target Object or Array by defining
  * hidden properties.
+ * 通过复制属性来扩展原对象
  */
 /* istanbul ignore next */
 function copyAugment (target, src, keys) {
@@ -1074,6 +1092,8 @@ function observe (value, asRootData) {
     //创建新的ob
     ob = new Observer(value);
   }
+  
+  //是否根数据
   if (asRootData && ob) {
     ob.vmCount++;
   }
@@ -3139,21 +3159,23 @@ function callHook (vm, hook) {
   popTarget();
 }
 
-/*  */
-
+/**
+ * watcher队列
+ */
 
 var MAX_UPDATE_COUNT = 100;
 
-var queue = [];
-var activatedChildren = [];
-var has = {};
-var circular = {};
-var waiting = false;
-var flushing = false;
-var index = 0;
+var queue = [];//watcher队列
+var activatedChildren = [];//活动的子组件队列
+var has = {};//watcher是否已在队列中
+var circular = {};//判断是否产生了死循环
+var waiting = false;//等待处理
+var flushing = false;//正在处理
+var index = 0;//当前处理的index
 
 /**
  * Reset the scheduler's state.
+ * 重置队列状态
  */
 function resetSchedulerState () {
   index = queue.length = activatedChildren.length = 0;
@@ -3166,6 +3188,7 @@ function resetSchedulerState () {
 
 /**
  * Flush both queues and run the watchers.
+ * 处理所有队列，并调用watcher.run方法
  */
 function flushSchedulerQueue () {
   flushing = true;
@@ -3179,6 +3202,7 @@ function flushSchedulerQueue () {
   //    user watchers are created before the render watcher)
   // 3. If a component is destroyed during a parent component's watcher run,
   //    its watchers can be skipped.
+  //将队列按watcher.id进行排序
   queue.sort(function (a, b) { return a.id - b.id; });
 
   // do not cache length because more watchers might be pushed
@@ -3187,8 +3211,10 @@ function flushSchedulerQueue () {
     watcher = queue[index];
     id = watcher.id;
     has[id] = null;
+    //watcher
     watcher.run();
     // in dev build, check and stop circular updates.
+    //检查死循环
     if ("development" !== 'production' && has[id] != null) {
       circular[id] = (circular[id] || 0) + 1;
       if (circular[id] > MAX_UPDATE_COUNT) {
@@ -3206,22 +3232,29 @@ function flushSchedulerQueue () {
   }
 
   // keep copies of post queues before resetting state
+  //备份队列信息
   var activatedQueue = activatedChildren.slice();
   var updatedQueue = queue.slice();
-
+  
+  //重置队列状态
   resetSchedulerState();
 
   // call component updated and activated hooks
+  //执行队列的updated与activated回调
   callActivatedHooks(activatedQueue);
   callUpdatedHooks(updatedQueue);
 
   // devtool hook
   /* istanbul ignore if */
+  //开发工具刷新
   if (devtools && config.devtools) {
     devtools.emit('flush');
   }
 }
 
+/**
+ * 执行update回调
+ */
 function callUpdatedHooks (queue) {
   var i = queue.length;
   while (i--) {
@@ -3236,6 +3269,8 @@ function callUpdatedHooks (queue) {
 /**
  * Queue a kept-alive component that was activated during patch.
  * The queue will be processed after the entire tree has been patched.
+ * 对补丁期间激活的kept-alive组件进行排队
+ * 队列将在整个树被修补之后被处理
  */
 function queueActivatedComponent (vm) {
   // setting _inactive to false here so that a render function can
@@ -3244,6 +3279,9 @@ function queueActivatedComponent (vm) {
   activatedChildren.push(vm);
 }
 
+/**
+ * 执行active回调
+ */
 function callActivatedHooks (queue) {
   for (var i = 0; i < queue.length; i++) {
     queue[i]._inactive = true;
@@ -3255,23 +3293,27 @@ function callActivatedHooks (queue) {
  * Push a watcher into the watcher queue.
  * Jobs with duplicate IDs will be skipped unless it's
  * pushed when the queue is being flushed.
+ * 添加watcher到队列
  */
 function queueWatcher (watcher) {
   var id = watcher.id;
+  //watcher不在队列中
   if (has[id] == null) {
     has[id] = true;
     if (!flushing) {
+      //队列未处理，添加到队列
       queue.push(watcher);
     } else {
       // if already flushing, splice the watcher based on its id
       // if already past its id, it will be run next immediately.
+      //队列正在处理，将watcher插入到合适位置，以便待会处理
       var i = queue.length - 1;
       while (i > index && queue[i].id > watcher.id) {
         i--;
       }
       queue.splice(i + 1, 0, watcher);
     }
-    // queue the flush
+    //等待下轮处理
     if (!waiting) {
       waiting = true;
       nextTick(flushSchedulerQueue);
@@ -3279,14 +3321,22 @@ function queueWatcher (watcher) {
   }
 }
 
-/*  */
 
+//watcher的id
 var uid$1 = 0;
 
 /**
  * A watcher parses an expression, collects dependencies,
  * and fires callback when the expression value changes.
  * This is used for both the $watch() api and directives.
+ * 解析表达式，收集依赖项，并在表达式值更改时触发回调。
+ * 这用于$watch()和指令
+ * @param {type} vm:vue对象
+ * @param {type} expOrFn:getter方法
+ * @param {type} cb:combine回调
+ * @param {type} options
+ * @param {type} isRenderWatcher
+ * @returns {vue_L10.Watcher}
  */
 var Watcher = function Watcher (
   vm,
@@ -3318,7 +3368,8 @@ var Watcher = function Watcher (
   this.depIds = new _Set();
   this.newDepIds = new _Set();
   this.expression = expOrFn.toString();
-  // parse expression for getter
+  
+  //将expOrFn转为getter
   if (typeof expOrFn === 'function') {
     this.getter = expOrFn;
   } else {
@@ -3333,19 +3384,20 @@ var Watcher = function Watcher (
       );
     }
   }
-  this.value = this.lazy
-    ? undefined
-    : this.get();
+  this.value = this.lazy ? undefined : this.get();
 };
 
 /**
  * Evaluate the getter, and re-collect dependencies.
+ * 计算getter，并重新收集依赖项
  */
 Watcher.prototype.get = function get () {
+  //将当前watcher设置为Dep.target
   pushTarget(this);
   var value;
   var vm = this.vm;
   try {
+    //调用getter回调获取value
     value = this.getter.call(vm, vm);
   } catch (e) {
     if (this.user) {
@@ -3359,14 +3411,20 @@ Watcher.prototype.get = function get () {
     if (this.deep) {
       traverse(value);
     }
+    //还原上一个watcher为Dep.target
     popTarget();
+    
+    //清理新的依赖项
     this.cleanupDeps();
   }
+  
+  //返回value
   return value
 };
 
 /**
  * Add a dependency to this directive.
+ * 添加依赖到watcher
  */
 Watcher.prototype.addDep = function addDep (dep) {
   var id = dep.id;
@@ -3381,9 +3439,11 @@ Watcher.prototype.addDep = function addDep (dep) {
 
 /**
  * Clean up for dependency collection.
+ * 清理依赖项集合
+ * 同时将依赖项转移到depIds与deps
  */
 Watcher.prototype.cleanupDeps = function cleanupDeps () {
-    var this$1 = this;
+  var this$1 = this;
 
   var i = this.deps.length;
   while (i--) {
@@ -3405,14 +3465,17 @@ Watcher.prototype.cleanupDeps = function cleanupDeps () {
 /**
  * Subscriber interface.
  * Will be called when a dependency changes.
+ * 依赖型发生变化时调用
  */
 Watcher.prototype.update = function update () {
   /* istanbul ignore else */
   if (this.lazy) {
     this.dirty = true;
   } else if (this.sync) {
+    //同步调用
     this.run();
   } else {
+    //异步调用，将watcher放入队列
     queueWatcher(this);
   }
 };
@@ -3420,9 +3483,13 @@ Watcher.prototype.update = function update () {
 /**
  * Scheduler job interface.
  * Will be called by the scheduler.
+ * 在处理watcher队列时调用
+ * 1.调用get方法
+ * 2.调用cb回调
  */
 Watcher.prototype.run = function run () {
   if (this.active) {
+    //获取value
     var value = this.get();
     if (
       value !== this.value ||
@@ -3435,6 +3502,7 @@ Watcher.prototype.run = function run () {
       // set new value
       var oldValue = this.value;
       this.value = value;
+      //执行cb回调
       if (this.user) {
         try {
           this.cb.call(this.vm, value, oldValue);
@@ -3451,6 +3519,8 @@ Watcher.prototype.run = function run () {
 /**
  * Evaluate the value of the watcher.
  * This only gets called for lazy watchers.
+ * 获取watcher的value
+ * 仅用于惰性watcher
  */
 Watcher.prototype.evaluate = function evaluate () {
   this.value = this.get();
@@ -3459,9 +3529,10 @@ Watcher.prototype.evaluate = function evaluate () {
 
 /**
  * Depend on all deps collected by this watcher.
+ * 向当前watcher的所有dep中，添加Dep.target
  */
 Watcher.prototype.depend = function depend () {
-    var this$1 = this;
+  var this$1 = this;
 
   var i = this.deps.length;
   while (i--) {
@@ -3471,9 +3542,10 @@ Watcher.prototype.depend = function depend () {
 
 /**
  * Remove self from all dependencies' subscriber list.
+ * 从所有依赖项的订阅方列表中删除当前watcher
  */
 Watcher.prototype.teardown = function teardown () {
-    var this$1 = this;
+   var this$1 = this;
 
   if (this.active) {
     // remove self from vm's watcher list
