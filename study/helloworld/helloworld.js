@@ -1,5 +1,5 @@
 var userMethod = {
-    changeMessage: function () {
+    changeMessage: function() {
         //this.data.title?
         console.log(this);
         alert(this.title);
@@ -14,18 +14,18 @@ var data = {
         p2: true
     },
     todos: [
-        {text: '早饭'},
-        {text: '中饭'},
-        {text: '晚饭'}
+        { text: '早饭' },
+        { text: '中饭' },
+        { text: '晚饭' }
     ],
     useinfo: {
         cname: '小王',
         age: 10
     },
     todoList: [
-        {id: 0, text: '早饭'},
-        {id: 1, text: '中饭'},
-        {id: 2, text: '晚饭'}
+        { id: 0, text: '早饭' },
+        { id: 1, text: '中饭' },
+        { id: 2, text: '晚饭' }
     ]
 };
 

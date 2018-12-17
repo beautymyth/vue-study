@@ -1136,8 +1136,7 @@ function defineReactive (
   }
   var setter = property && property.set;
   
-  //子观察者
-  //非浅观察，还需要观察value(如果是对象的话)
+  //非浅观察，如果val有子属性的话，还需要监控子属性
   var childOb = !shallow && observe(val);
   
   //定义属性的getter与setter
@@ -1151,10 +1150,10 @@ function defineReactive (
       
       //存在运行的watcher
       if (Dep.target) {
-        //将dep添加到当前运行的watcher
+        //将val的依赖添加到当前运行的watcher
         dep.depend();
         if (childOb) {
-          //将子观察者的dep添加到当前运行的watcher
+          //将val对象的子属性的依赖添加到当前运行的watcher
           childOb.dep.depend();
           if (Array.isArray(value)) {
             //递归将value的dep添加到当前运行的watcher
@@ -1188,7 +1187,11 @@ function defineReactive (
       } else {
         val = newVal;
       }
+
+      //对新值添加监控
       childOb = !shallow && observe(newVal);
+
+      //通知watcher执行更新回调
       dep.notify();
     }
   });
@@ -3329,13 +3332,13 @@ var uid$1 = 0;
  * A watcher parses an expression, collects dependencies,
  * and fires callback when the expression value changes.
  * This is used for both the $watch() api and directives.
- * 解析表达式，收集依赖项，并在表达式值更改时触发回调。
+ * 解析监控表达式，收集依赖项，并在表达式依赖值更新时触发回调
  * 这用于$watch()和指令
- * @param {type} vm:vue对象
- * @param {type} expOrFn:getter方法
- * @param {type} cb:combine回调
- * @param {type} options
- * @param {type} isRenderWatcher
+ * @param {type} vm:vue对象()
+ * @param {type} expOrFn:监控Vue实例变化的一个表达式或计算属性函数
+ * @param {type} cb:回调函数
+ * @param {type} options:参数
+ * @param {type} isRenderWatcher:是否为html渲染的watcher
  * @returns {vue_L10.Watcher}
  */
 var Watcher = function Watcher (
@@ -3346,11 +3349,16 @@ var Watcher = function Watcher (
   isRenderWatcher
 ) {
   this.vm = vm;
+
+  //是否为html渲染的watcher
   if (isRenderWatcher) {
     vm._watcher = this;
   }
+
+  //watcher队列
   vm._watchers.push(this);
-  // options
+
+  //实例化参数
   if (options) {
     this.deep = !!options.deep;
     this.user = !!options.user;
@@ -3362,7 +3370,7 @@ var Watcher = function Watcher (
   this.cb = cb;
   this.id = ++uid$1; // uid for batching
   this.active = true;
-  this.dirty = this.lazy; // for lazy watchers
+  this.dirty = this.lazy; //用于惰性watcher(计算属性)，标记value是否过期，从而需要重新计算
   this.deps = [];
   this.newDeps = [];
   this.depIds = new _Set();
@@ -3371,8 +3379,10 @@ var Watcher = function Watcher (
   
   //将expOrFn转为getter
   if (typeof expOrFn === 'function') {
+    //expOrFn为函数
     this.getter = expOrFn;
   } else {
+    //expOrFn为属性路径（如a.b.c）
     this.getter = parsePath(expOrFn);
     if (!this.getter) {
       this.getter = function () {};
@@ -3384,6 +3394,9 @@ var Watcher = function Watcher (
       );
     }
   }
+
+  //获取表达式值，同时建立数据依赖
+  //注意：如果是惰性watcher，则不获取值
   this.value = this.lazy ? undefined : this.get();
 };
 
@@ -3465,11 +3478,12 @@ Watcher.prototype.cleanupDeps = function cleanupDeps () {
 /**
  * Subscriber interface.
  * Will be called when a dependency changes.
- * 依赖型发生变化时调用
+ * 依赖项发生变化时调用
  */
 Watcher.prototype.update = function update () {
   /* istanbul ignore else */
   if (this.lazy) {
+    //惰性watcher，只作标记，用于在使用时再更新
     this.dirty = true;
   } else if (this.sync) {
     //同步调用
@@ -3520,7 +3534,7 @@ Watcher.prototype.run = function run () {
  * Evaluate the value of the watcher.
  * This only gets called for lazy watchers.
  * 获取watcher的value
- * 仅用于惰性watcher
+ * 仅用于惰性watcher，如计算属性
  */
 Watcher.prototype.evaluate = function evaluate () {
   this.value = this.get();
@@ -3529,7 +3543,7 @@ Watcher.prototype.evaluate = function evaluate () {
 
 /**
  * Depend on all deps collected by this watcher.
- * 向当前watcher的所有dep中，添加Dep.target
+ * 向当前watcher对象的所有dep中，添加Dep.target
  */
 Watcher.prototype.depend = function depend () {
   var this$1 = this;
@@ -3776,16 +3790,25 @@ function defineComputed (
   Object.defineProperty(target, key, sharedPropertyDefinition);
 }
 
+/**
+ * 创建计算属性的getter
+ */
 function createComputedGetter (key) {
   return function computedGetter () {
     var watcher = this._computedWatchers && this._computedWatchers[key];
     if (watcher) {
+
+      //如果依赖值发生了变化，重新计算值
       if (watcher.dirty) {
         watcher.evaluate();
       }
+
+      //将计算属性的dep，绑定到当前运行的watcher上
       if (Dep.target) {
         watcher.depend();
       }
+
+      //返回watcher值
       return watcher.value
     }
   }
@@ -3832,6 +3855,10 @@ function initWatch (vm, watch) {
   }
 }
 
+/**
+ * 创建watcher
+ * handler为对象
+ */
 function createWatcher (
   vm,
   expOrFn,
@@ -3876,21 +3903,37 @@ function stateMixin (Vue) {
   Vue.prototype.$set = set;
   Vue.prototype.$delete = del;
 
+  /**
+   * 监控表达式的依赖值，当依赖值变化时触发回调
+   * https://cn.vuejs.org/v2/api/#vm-watch
+   * @param  {[type]}   expOrFn [监控表达式]
+   * @param  {Function} cb      [回调方法]
+   * @param  {[type]}   options [选项参数]
+   * @return {[type]}           [watcher.teardown]
+   */
   Vue.prototype.$watch = function (
     expOrFn,
     cb,
     options
   ) {
     var vm = this;
+
+    //回调为对象
     if (isPlainObject(cb)) {
       return createWatcher(vm, expOrFn, cb, options)
     }
+
+    //创建watcher实例
     options = options || {};
     options.user = true;
     var watcher = new Watcher(vm, expOrFn, cb, options);
+
+    //立即计算表达式，并触发回调
     if (options.immediate) {
       cb.call(vm, watcher.value);
     }
+
+    //返回终止观察函数，用来停止触发回调
     return function unwatchFn () {
       watcher.teardown();
     }

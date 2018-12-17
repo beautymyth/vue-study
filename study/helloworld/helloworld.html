@@ -1,67 +1,70 @@
 <!DOCTYPE html>
 <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <title>hello world</title>
-        <script src="../../vue/vue.js"></script>
-        <script>
 
-            function def(obj, key, val, enumerable) {
-                Object.defineProperty(obj, key, {
-                    value: val,
-                    enumerable: !!enumerable,
-                    writable: true,
-                    configurable: true
-                });
-            }
+<head>
+    <meta charset="UTF-8">
+    <title>hello world</title>
+    <script src="../../vue/vue.js"></script>
+    <script>
+    function def(obj, key, val, enumerable) {
+        Object.defineProperty(obj, key, {
+            value: val,
+            enumerable: !!enumerable,
+            writable: true,
+            configurable: true
+        });
+    }
 
-            function copyAugment(target, src, keys) {
-                for (var i = 0, l = keys.length; i < l; i++) {
-                    var key = keys[i];
-                    def(target, key, src[key]);
-                }
-            }
+    function copyAugment(target, src, keys) {
+        for (var i = 0, l = keys.length; i < l; i++) {
+            var key = keys[i];
+            def(target, key, src[key]);
+        }
+    }
 
-            var a = {}, b = {a: 1, b: 2};
-            copyAugment(a, b, ['a', 'b']);
-            console.log(a);
-            
-            var len=2;
-            var args=[],arguments=[{a:1},{b:2}];
-            args=arguments.slice(0);
-            args[0]['a']=11;
-            args[2]=2;
-            console.log(arguments);
-            console.log(args);
-        </script>
-    </head>
-    <body>
-        <div id="app">
-            <div v-bind:title="title">
-                {{message}}
-            </div>
-            <p v-if="isShow.p1">
-                哈哈p1
-            </p>
-            <p v-if="isShow.p2">
-                哈哈p2
-            </p>
-            <ol>
-                <li v-for="todo in todos">
-                    {{todo.text}}
-                </li>
-            </ol>
-            <button v-on:click="changeMessage">changeMessage</button>
-            <div>
-                <input v-model="useinfo.cname"/>
-                <input v-model="useinfo.age"/>
-            </div>
-            <ol>
-                <todo-item v-for="item in todoList" v-bind:todo="item" v-bind:key="item.id">
+    var a = {},
+        b = { a: 1, b: 2 };
+    copyAugment(a, b, ['a', 'b']);
+    console.log(a);
 
-                </todo-item>
-            </ol>
+    var len = 2;
+    var args = [],
+        arguments = [{ a: 1 }, { b: 2 }];
+    args = arguments.slice(0);
+    args[0]['a'] = 11;
+    args[2] = 2;
+    console.log(arguments);
+    console.log(args);
+    </script>
+</head>
+
+<body>
+    <div id="app">
+        <div v-bind:title="title">
+            {{message}}
         </div>
-        <script src="helloworld.js"></script>
-    </body>
+        <p v-if="isShow.p1">
+            哈哈p1
+        </p>
+        <p v-if="isShow.p2">
+            哈哈p2
+        </p>
+        <ol>
+            <li v-for="todo in todos">
+                {{todo.text}}
+            </li>
+        </ol>
+        <button v-on:click="changeMessage">changeMessage</button>
+        <div>
+            <input v-model="useinfo.cname" />
+            <input v-model="useinfo.age" />
+        </div>
+        <ol>
+            <todo-item v-for="item in todoList" v-bind:todo="item" v-bind:key="item.id">
+            </todo-item>
+        </ol>
+    </div>
+    <script src="helloworld.js"></script>
+</body>
+
 </html>
