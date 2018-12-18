@@ -549,6 +549,7 @@ function def (obj, key, val, enumerable) {
 
 /**
  * Parse simple path.
+ * 生成根据键路径获取data值的函数
  */
 var bailRE = /[^\w.$]/;
 function parsePath (path) {
@@ -3395,7 +3396,7 @@ var Watcher = function Watcher (
     }
   }
 
-  //获取表达式值，同时建立数据依赖
+  //获取表达式值，同时建立watcher与dep的关联
   //注意：如果是惰性watcher，则不获取值
   this.value = this.lazy ? undefined : this.get();
 };
