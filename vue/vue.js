@@ -1003,6 +1003,8 @@ var Observer = function Observer (value) {
   //ob对象添加value(形成你中有我，我中有你的现象)与dep对象
   this.value = value;
   this.dep = new Dep();
+  //console.log(value);
+  console.log(this.dep);
   this.vmCount = 0;
   
   //绑定observer到value对象
@@ -1120,6 +1122,9 @@ function defineReactive (
 ) {
   //定义依赖
   var dep = new Dep();
+  //console.log(obj);
+  console.log(key);
+  console.log(dep);
   
   //属性存在且可配置
   var property = Object.getOwnPropertyDescriptor(obj, key);
