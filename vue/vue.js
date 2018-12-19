@@ -1148,13 +1148,12 @@ function defineReactive (
     get: function reactiveGetter () {
       //获取实际value
       var value = getter ? getter.call(obj) : val;
-      
       //存在运行的watcher
       if (Dep.target) {
         //将val的依赖添加到当前运行的watcher
         dep.depend();
         if (childOb) {
-          //将val对象的子属性的依赖添加到当前运行的watcher
+          //将val对象的直接子属性的依赖(obj.dep-可见的)添加到当前运行的watcher
           childOb.dep.depend();
           if (Array.isArray(value)) {
             //递归将value的dep添加到当前运行的watcher
@@ -2175,6 +2174,7 @@ var seenObjects = new _Set();
  * Recursively traverse an object to evoke all converted
  * getters, so that every nested property inside the object
  * is collected as a "deep" dependency.
+ * 递归遍历val中的属性，触发get建立依赖
  */
 function traverse (val) {
   _traverse(val, seenObjects);
@@ -3442,10 +3442,14 @@ Watcher.prototype.get = function get () {
  */
 Watcher.prototype.addDep = function addDep (dep) {
   var id = dep.id;
+  //疑问：下面的处理，只会排除在newDepIds且不在depIds中的dep
+  //什么情况才会出现呢？
   if (!this.newDepIds.has(id)) {
+    //不在新收集依赖中
     this.newDepIds.add(id);
     this.newDeps.push(dep);
     if (!this.depIds.has(id)) {
+      //不在原有的依赖中
       dep.addSub(this);
     }
   }
@@ -3453,8 +3457,8 @@ Watcher.prototype.addDep = function addDep (dep) {
 
 /**
  * Clean up for dependency collection.
- * 清理依赖项集合
- * 同时将依赖项转移到depIds与deps
+ * 清理依赖项集合?
+ * 记录新收集的依赖
  */
 Watcher.prototype.cleanupDeps = function cleanupDeps () {
   var this$1 = this;
@@ -3578,7 +3582,9 @@ Watcher.prototype.teardown = function teardown () {
 };
 
 /*  */
-
+/**
+ * 通用属性定义模板
+ */
 var sharedPropertyDefinition = {
   enumerable: true,
   configurable: true,
@@ -3596,6 +3602,9 @@ function proxy (target, sourceKey, key) {
   Object.defineProperty(target, key, sharedPropertyDefinition);
 }
 
+/**
+ * 初始化状态
+ */
 function initState (vm) {
   vm._watchers = [];
   var opts = vm.$options;
@@ -3607,6 +3616,7 @@ function initState (vm) {
     observe(vm._data = {}, true /* asRootData */);
   }
   if (opts.computed) { initComputed(vm, opts.computed); }
+  //因为自定义watch可能使用计算属性，所以要在计算属性初始化后面
   if (opts.watch && opts.watch !== nativeWatch) {
     initWatch(vm, opts.watch);
   }
@@ -3715,16 +3725,22 @@ function getData (data, vm) {
   }
 }
 
+//计算属性watcher配置
 var computedWatcherOptions = { lazy: true };
 
+/**
+ * 初始化计算属性
+ */
 function initComputed (vm, computed) {
   // $flow-disable-line
   var watchers = vm._computedWatchers = Object.create(null);
   // computed properties are just getters during SSR
   var isSSR = isServerRendering();
-
+  
+  //遍历处理
   for (var key in computed) {
     var userDef = computed[key];
+    //获取watcher的expOrFn
     var getter = typeof userDef === 'function' ? userDef : userDef.get;
     if ("development" !== 'production' && getter == null) {
       warn(
@@ -3735,6 +3751,7 @@ function initComputed (vm, computed) {
 
     if (!isSSR) {
       // create internal watcher for the computed property.
+      //为计算属性创建watcher
       watchers[key] = new Watcher(
         vm,
         getter || noop,
@@ -3746,6 +3763,7 @@ function initComputed (vm, computed) {
     // component-defined computed properties are already defined on the
     // component prototype. We only need to define computed properties defined
     // at instantiation here.
+    //将计算属性定义到vm上
     if (!(key in vm)) {
       defineComputed(vm, key, userDef);
     } else {
@@ -3758,6 +3776,9 @@ function initComputed (vm, computed) {
   }
 }
 
+/**
+ * 在target上定义计算属性
+ */
 function defineComputed (
   target,
   key,
@@ -3796,6 +3817,7 @@ function defineComputed (
  */
 function createComputedGetter (key) {
   return function computedGetter () {
+    //计算属性watcher
     var watcher = this._computedWatchers && this._computedWatchers[key];
     if (watcher) {
 
@@ -3805,6 +3827,7 @@ function createComputedGetter (key) {
       }
 
       //将计算属性的dep，绑定到当前运行的watcher上
+      //用于当计算属性依赖的数据发生变化时，可触发依赖计算属性的watcher进行更新，从而触发计算属性的get来更新计算属性值
       if (Dep.target) {
         watcher.depend();
       }
