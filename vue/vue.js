@@ -3866,10 +3866,14 @@ function initMethods (vm, methods) {
   }
 }
 
+/**
+ * 初始化watcher
+ */
 function initWatch (vm, watch) {
   for (var key in watch) {
     var handler = watch[key];
     if (Array.isArray(handler)) {
+      //多个回调函数
       for (var i = 0; i < handler.length; i++) {
         createWatcher(vm, key, handler[i]);
       }
