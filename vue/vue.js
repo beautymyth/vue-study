@@ -4978,6 +4978,7 @@ function initMixin (Vue) {
       measure(("vue " + (vm._name) + " init"), startTag, endTag);
     }
 
+    //挂载实例
     if (vm.$options.el) {
       vm.$mount(vm.$options.el);
     }
@@ -5667,6 +5668,7 @@ var isTextInputType = makeMap('text,number,password,search,email,tel,url');
 
 /**
  * Query an element selector if it's not an element already.
+ * 通过el获取dom元素
  */
 function query (el) {
   if (typeof el === 'string') {
@@ -8910,6 +8912,7 @@ extend(Vue.options.components, platformComponents);
 Vue.prototype.__patch__ = inBrowser ? patch : noop;
 
 // public mount method
+// 公用的挂载方法
 Vue.prototype.$mount = function (
   el,
   hydrating
@@ -11262,11 +11265,18 @@ var idToTemplate = cached(function (id) {
   return el && el.innerHTML
 });
 
+/**
+ * 对Vue.prototype.$mount进行重载
+ * 1.将template/el解析成render函数
+ * 2.获取模板的render与staticRenderFns，保存到options
+ * 3.调用原来的$mount方法
+ */
 var mount = Vue.prototype.$mount;
 Vue.prototype.$mount = function (
   el,
   hydrating
 ) {
+  //获取dom元素
   el = el && query(el);
 
   /* istanbul ignore if */
@@ -11279,7 +11289,9 @@ Vue.prototype.$mount = function (
 
   var options = this.$options;
   // resolve template/el and convert to render function
+  //将template/el解析成render函数
   if (!options.render) {
+    //获取dom元素的outerHtml
     var template = options.template;
     if (template) {
       if (typeof template === 'string') {
@@ -11304,6 +11316,8 @@ Vue.prototype.$mount = function (
     } else if (el) {
       template = getOuterHTML(el);
     }
+
+    //获取模板的render与staticRenderFns，保存到options
     if (template) {
       /* istanbul ignore if */
       if ("development" !== 'production' && config.performance && mark) {
@@ -11328,12 +11342,15 @@ Vue.prototype.$mount = function (
       }
     }
   }
+
+  //调用重载前的方法
   return mount.call(this, el, hydrating)
 };
 
 /**
  * Get outerHTML of elements, taking care
  * of SVG elements in IE as well.
+ * 获取dom的外部html
  */
 function getOuterHTML (el) {
   if (el.outerHTML) {
