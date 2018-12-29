@@ -10205,8 +10205,10 @@ var directives$1 = {
   html: html
 }
 
-/*  */
 
+/**
+ * 编译器参数
+ */
 var baseOptions = {
   expectHTML: true,
   modules: modules$1,
@@ -11173,6 +11175,7 @@ function createCompilerCreator (baseCompile) {
       template,
       options
     ) {
+      //生成最终配置，baseOptions属于finalOptions的proto
       var finalOptions = Object.create(baseOptions);
       var errors = [];
       var tips = [];
@@ -11239,27 +11242,35 @@ var createCompiler = createCompilerCreator(function baseCompile (
 });
 
 /*  */
-
+//创建编译器
 var ref$1 = createCompiler(baseOptions);
 var compileToFunctions = ref$1.compileToFunctions;
 
-/*  */
-
-// check whether current browser encodes a char inside attribute values
+/**
+ * check whether current browser encodes a char inside attribute values
+ * 检查当前浏览器是否对属性值中的字符进行编码
+ * 1.通过使用换行符来进行检测
+ */
 var div;
 function getShouldDecode (href) {
   div = div || document.createElement('div');
+  //是否a标签属性
   div.innerHTML = href ? "<a href=\"\n\"/>" : "<div a=\"\n\"/>";
+  //[&#10;]为换行符的ascii码
   return div.innerHTML.indexOf('&#10;') > 0
 }
 
 // #3663: IE encodes newlines inside attribute values while other browsers don't
+//IE在属性值内编码换行，而其他浏览器则不会
 var shouldDecodeNewlines = inBrowser ? getShouldDecode(false) : false;
+
 // #6828: chrome encodes content in a[href]
+//chrome在a[href]中对内容进行编码
 var shouldDecodeNewlinesForHref = inBrowser ? getShouldDecode(true) : false;
 
-/*  */
-
+/**
+ * 缓存根据id获取的dom中的html
+ */
 var idToTemplate = cached(function (id) {
   var el = query(id);
   return el && el.innerHTML
