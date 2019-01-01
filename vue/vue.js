@@ -5616,12 +5616,15 @@ var isSVG = makeMap(
   true
 );
 
+//是否pre标签
 var isPreTag = function (tag) { return tag === 'pre'; };
 
+//是否保留标签
 var isReservedTag = function (tag) {
   return isHTMLTag(tag) || isSVG(tag)
 };
 
+//获取标签命名空间
 function getTagNamespace (tag) {
   if (isSVG(tag)) {
     return 'svg'
@@ -6826,39 +6829,58 @@ var klass = {
 
 var validDivisionCharRE = /[\w).+\-_$\]]/;
 
+/**
+ * 解析过滤器
+ */
 function parseFilters (exp) {
-  var inSingle = false;
-  var inDouble = false;
-  var inTemplateString = false;
-  var inRegex = false;
-  var curly = 0;
-  var square = 0;
-  var paren = 0;
-  var lastFilterIndex = 0;
+  var inSingle = false; //0x27 ' 闭单引号
+  var inDouble = false; //0x22 " 双引号
+  var inTemplateString = false; //0x60 ` 开单引号
+  var inRegex = false; //正则表达式
+  var curly = 0; //{}
+  var square = 0; //[]
+  var paren = 0; //()
+  var lastFilterIndex = 0; //上一个过滤器位置
   var c, prev, i, expression, filters;
 
+  //遍历exp字符串
+  //0x5C \ 反斜杠：用于检测非转义字符
   for (i = 0; i < exp.length; i++) {
     prev = c;
     c = exp.charCodeAt(i);
     if (inSingle) {
-      if (c === 0x27 && prev !== 0x5C) { inSingle = false; }
+      //检测已不在''中
+      if (c === 0x27 && prev !== 0x5C) { 
+        inSingle = false; 
+      }
     } else if (inDouble) {
-      if (c === 0x22 && prev !== 0x5C) { inDouble = false; }
+      //检测已不在""中
+      if (c === 0x22 && prev !== 0x5C) { 
+        inDouble = false; 
+      }
     } else if (inTemplateString) {
-      if (c === 0x60 && prev !== 0x5C) { inTemplateString = false; }
+      //检测已不在``中
+      if (c === 0x60 && prev !== 0x5C) { 
+        inTemplateString = false; 
+      }
     } else if (inRegex) {
-      if (c === 0x2f && prev !== 0x5C) { inRegex = false; }
+      //检测已不在//中
+      if (c === 0x2f && prev !== 0x5C) { 
+        inRegex = false; 
+      }
     } else if (
-      c === 0x7C && // pipe
+      c === 0x7C && // pipe | 垂线
       exp.charCodeAt(i + 1) !== 0x7C &&
       exp.charCodeAt(i - 1) !== 0x7C &&
       !curly && !square && !paren
     ) {
       if (expression === undefined) {
         // first filter, end of expression
+        // 第一个过滤器，记录到expression
         lastFilterIndex = i + 1;
         expression = exp.slice(0, i).trim();
       } else {
+        // 之后的过滤器，记录到filters
         pushFilter();
       }
     } else {
@@ -6873,14 +6895,16 @@ function parseFilters (exp) {
         case 0x7B: curly++; break                 // {
         case 0x7D: curly--; break                 // }
       }
-      if (c === 0x2f) { // /
+      if (c === 0x2f) { // / 斜杠
         var j = i - 1;
         var p = (void 0);
         // find first non-whitespace prev char
+        // 向前寻找非空格的字符
         for (; j >= 0; j--) {
           p = exp.charAt(j);
-          if (p !== ' ') { break }
+          if (p !== ' ') { break }         
         }
+        //前面无字符或字符非分隔字符，则认为是正则表达式
         if (!p || !validDivisionCharRE.test(p)) {
           inRegex = true;
         }
@@ -6888,17 +6912,20 @@ function parseFilters (exp) {
     }
   }
 
+  //保底处理
   if (expression === undefined) {
     expression = exp.slice(0, i).trim();
   } else if (lastFilterIndex !== 0) {
     pushFilter();
   }
 
+  //添加过滤器到filters
   function pushFilter () {
     (filters || (filters = [])).push(exp.slice(lastFilterIndex, i).trim());
     lastFilterIndex = i + 1;
   }
 
+  //生成过滤器的嵌套方法
   if (filters) {
     for (i = 0; i < filters.length; i++) {
       expression = wrapFilter(expression, filters[i]);
@@ -6908,6 +6935,9 @@ function parseFilters (exp) {
   return expression
 }
 
+/**
+ * 生成过滤器的嵌套方法
+ */
 function wrapFilter (exp, filter) {
   var i = filter.indexOf('(');
   if (i < 0) {
@@ -6920,12 +6950,16 @@ function wrapFilter (exp, filter) {
   }
 }
 
-/*  */
-
+/**
+ * 错误提示方法
+ */
 function baseWarn (msg) {
   console.error(("[Vue compiler]: " + msg));
 }
 
+/**
+ * 根据key从模块中提取方法
+ */
 function pluckModuleFunction (
   modules,
   key
@@ -7039,17 +7073,24 @@ function addHandler (
   el.plain = false;
 }
 
+/**
+ * 获取动态绑定的属性
+ */
 function getBindingAttr (
   el,
   name,
   getStatic
 ) {
+  //获取属性值
   var dynamicValue =
     getAndRemoveAttr(el, ':' + name) ||
     getAndRemoveAttr(el, 'v-bind:' + name);
+
   if (dynamicValue != null) {
+    //解析过滤器
     return parseFilters(dynamicValue)
   } else if (getStatic !== false) {
+    //是否获取静态属性值
     var staticValue = getAndRemoveAttr(el, name);
     if (staticValue != null) {
       return JSON.stringify(staticValue)
@@ -7061,13 +7102,19 @@ function getBindingAttr (
 // doesn't get processed by processAttrs.
 // By default it does NOT remove it from the map (attrsMap) because the map is
 // needed during codegen.
+// 
+// 从attrsMap中获取属性值
+// 1.移除attrsList中此属性
+// 2.根据removeFromMap条件，确定是否移除attrsMap中此属性
 function getAndRemoveAttr (
   el,
   name,
   removeFromMap
 ) {
   var val;
+  //获取属性值
   if ((val = el.attrsMap[name]) != null) {
+    //从attrsList中移除属性
     var list = el.attrsList;
     for (var i = 0, l = list.length; i < l; i++) {
       if (list[i].name === name) {
@@ -7076,6 +7123,8 @@ function getAndRemoveAttr (
       }
     }
   }
+
+  //是否需要从attrsMap移除属性
   if (removeFromMap) {
     delete el.attrsMap[name];
   }
@@ -8953,11 +9002,10 @@ if (inBrowser) {
   }, 0);
 }
 
-/*  */
-
+//默认分隔符
 var defaultTagRE = /\{\{((?:.|\n)+?)\}\}/g;
 var regexEscapeRE = /[-.*+?^${}()|[\]\/\\]/g;
-
+//自定义分隔符
 var buildRegex = cached(function (delimiters) {
   var open = delimiters[0].replace(regexEscapeRE, '\\$&');
   var close = delimiters[1].replace(regexEscapeRE, '\\$&');
@@ -8965,12 +9013,33 @@ var buildRegex = cached(function (delimiters) {
 });
 
 
+/**
+ * 解析文本内容，根据分隔符提取信息
+ * text：需要解析的内容
+ * delimiters：分隔符，默认为["{{", "}}"]
+ *
+ * Tips:这里使用了正则表达式的懒惰匹配，在能使整个匹配成功的前提下使用最少的重复
+ * 代码/语法  说明
+  *?    重复任意次，但尽可能少重复
+  +?    重复1次或更多次，但尽可能少重复
+  ??    重复0次或1次，但尽可能少重复
+  {n,m}? 重复n到m次，但尽可能少重复
+  {n,}? 重复n次以上，但尽可能少重复
 
+ * 案例：
+ * 输入：1{{a.a1}}3
+ * 返回：
+ * expression:""1"+_s(a.a1)+"2"+_s(a.a2)+"3"" 
+ * tokens:["1",{@binding: "a.a1"},"2",{@binding: "a.a2"},"3"]
+ */
 function parseText (
   text,
   delimiters
 ) {
+  //处理自定义分隔符
   var tagRE = delimiters ? buildRegex(delimiters) : defaultTagRE;
+
+  //是否包含分隔符
   if (!tagRE.test(text)) {
     return
   }
@@ -8978,9 +9047,12 @@ function parseText (
   var rawTokens = [];
   var lastIndex = tagRE.lastIndex = 0;
   var match, index, tokenValue;
+
+  //循环处理匹配项
   while ((match = tagRE.exec(text))) {
     index = match.index;
     // push text token
+    // 处理非匹配项内容
     if (index > lastIndex) {
       rawTokens.push(tokenValue = text.slice(lastIndex, index));
       tokens.push(JSON.stringify(tokenValue));
@@ -8991,20 +9063,29 @@ function parseText (
     rawTokens.push({ '@binding': exp });
     lastIndex = index + match[0].length;
   }
+
+  //处理结尾非匹配项内容
   if (lastIndex < text.length) {
     rawTokens.push(tokenValue = text.slice(lastIndex));
     tokens.push(JSON.stringify(tokenValue));
   }
+
+  //返回
   return {
     expression: tokens.join('+'),
     tokens: rawTokens
   }
 }
 
-/*  */
 
+/**
+ * 转换节点，处理class绑定
+ * 1.el.staticClass->class
+ * 2. el.classBinding->v-bind:class或:class
+ */
 function transformNode (el, options) {
   var warn = options.warn || baseWarn;
+  //获取静态的class属性
   var staticClass = getAndRemoveAttr(el, 'class');
   if ("development" !== 'production' && staticClass) {
     var res = parseText(staticClass, options.delimiters);
@@ -9017,15 +9098,23 @@ function transformNode (el, options) {
       );
     }
   }
+  //设置staticClass到el对象
   if (staticClass) {
     el.staticClass = JSON.stringify(staticClass);
   }
+
+  //获取动态绑定的class，v-bind:class或:class
   var classBinding = getBindingAttr(el, 'class', false /* getStatic */);
+
+  //设置classBinding到el对象
   if (classBinding) {
     el.classBinding = classBinding;
   }
 }
 
+/**
+ * 将staticClass与classBinding拼接为字符串
+ */
 function genData (el) {
   var data = '';
   if (el.staticClass) {
@@ -9037,14 +9126,20 @@ function genData (el) {
   return data
 }
 
+/**
+ * 绑定 HTML Class
+ */
 var klass$1 = {
   staticKeys: ['staticClass'],
   transformNode: transformNode,
   genData: genData
 }
 
-/*  */
-
+/**
+ * 转换节点，处理style绑定
+ * 1.el.staticStyle->style
+ * 2. el.styleBinding->v-bind:style或:style
+ */
 function transformNode$1 (el, options) {
   var warn = options.warn || baseWarn;
   var staticStyle = getAndRemoveAttr(el, 'style');
@@ -9070,6 +9165,9 @@ function transformNode$1 (el, options) {
   }
 }
 
+/**
+ * 将staticStyle与styleBinding拼接为字符串
+ */
 function genData$1 (el) {
   var data = '';
   if (el.staticStyle) {
@@ -9081,6 +9179,9 @@ function genData$1 (el) {
   return data
 }
 
+/**
+ * 绑定内联样式
+ */
 var style$1 = {
   staticKeys: ['staticStyle'],
   transformNode: transformNode$1,
@@ -9102,6 +9203,7 @@ var he = {
 
 /**
  * 是否一元标签
+ * 理解：内部不能嵌套其他标签
  */
 var isUnaryTag = makeMap(
   'area,base,br,col,embed,frame,hr,img,input,isindex,keygen,' +
@@ -9142,18 +9244,21 @@ var isNonPhrasingTag = makeMap(
  */
 
 // Regular Expressions for parsing tags and attributes
+// 用于解析标记和属性的正则表达式
 var attribute = /^\s*([^\s"'<>\/=]+)(?:\s*(=)\s*(?:"([^"]*)"+|'([^']*)'+|([^\s"'=<>`]+)))?/;
 // could use https://www.w3.org/TR/1999/REC-xml-names-19990114/#NT-QName
 // but for Vue templates we can enforce a simple charset
 var ncname = '[a-zA-Z_][\\w\\-\\.]*';
 var qnameCapture = "((?:" + ncname + "\\:)?" + ncname + ")";
+
 var startTagOpen = new RegExp(("^<" + qnameCapture));
 var startTagClose = /^\s*(\/?)>/;
-var endTag = new RegExp(("^<\\/" + qnameCapture + "[^>]*>"));
-var doctype = /^<!DOCTYPE [^>]+>/i;
+
+var endTag = new RegExp(("^<\\/" + qnameCapture + "[^>]*>")); //匹配结束标记:</div>
+var doctype = /^<!DOCTYPE [^>]+>/i; //匹配doctype
 // #7298: escape - to avoid being pased as HTML comment when inlined in page
-var comment = /^<!\--/;
-var conditionalComment = /^<!\[/;
+var comment = /^<!\--/; //匹配注释:<!--comment-->
+var conditionalComment = /^<!\[/; //匹配下层显示注释:<！[if！IE]> 
 
 var IS_REGEX_CAPTURING_BROKEN = false;
 'x'.replace(/x(.)?/g, function (m, g) {
@@ -9185,55 +9290,70 @@ var encodedAttrWithNewLines = /&(?:lt|gt|quot|amp|#10|#9);/g;
 var isIgnoreNewlineTag = makeMap('pre,textarea', true);
 var shouldIgnoreFirstNewline = function (tag, html) { return tag && isIgnoreNewlineTag(tag) && html[0] === '\n'; };
 
+/**
+ * 处理属性中的html特殊字符
+ */
 function decodeAttr (value, shouldDecodeNewlines) {
   var re = shouldDecodeNewlines ? encodedAttrWithNewLines : encodedAttr;
   return value.replace(re, function (match) { return decodingMap[match]; })
 }
 
+/**
+ * 解析html
+ * 
+ */
 function parseHTML (html, options) {
   var stack = [];
   var expectHTML = options.expectHTML;
   var isUnaryTag$$1 = options.isUnaryTag || no;
   var canBeLeftOpenTag$$1 = options.canBeLeftOpenTag || no;
-  var index = 0;
+  var index = 0;  //当前处理位置
   var last, lastTag;
   while (html) {
     last = html;
     // Make sure we're not in a plaintext content element like script/style
+    // 存在当前标记且标记非(script,style,textarea)
     if (!lastTag || !isPlainTextElement(lastTag)) {
       var textEnd = html.indexOf('<');
       if (textEnd === 0) {
-        // Comment:
+        // Comment【/^<!\--/】:处理注释
         if (comment.test(html)) {
+          //注释结束位置
           var commentEnd = html.indexOf('-->');
 
           if (commentEnd >= 0) {
             if (options.shouldKeepComment) {
+              //保留注释
               options.comment(html.substring(4, commentEnd));
             }
             advance(commentEnd + 3);
-            continue
+            //重新处理html
+            continue;
           }
         }
 
         // http://en.wikipedia.org/wiki/Conditional_comment#Downlevel-revealed_conditional_comment
+        // conditionalComment【/^<!\[/】:处理下层显示条件注释
         if (conditionalComment.test(html)) {
+          //条件注释结束位置
           var conditionalEnd = html.indexOf(']>');
 
           if (conditionalEnd >= 0) {
             advance(conditionalEnd + 2);
-            continue
+            //重新处理html
+            continue;
           }
         }
 
-        // Doctype:
+        // Doctype【/^<!DOCTYPE [^>]+>/i】:doctype
         var doctypeMatch = html.match(doctype);
         if (doctypeMatch) {
           advance(doctypeMatch[0].length);
-          continue
+          //重新处理html
+          continue;
         }
 
-        // End tag:
+        // End tag【^<\\/" + qnameCapture + "[^>]*>】:结束标记
         var endTagMatch = html.match(endTag);
         if (endTagMatch) {
           var curIndex = index;
@@ -9242,7 +9362,7 @@ function parseHTML (html, options) {
           continue
         }
 
-        // Start tag:
+        // Start tag:开始标记
         var startTagMatch = parseStartTag();
         if (startTagMatch) {
           handleStartTag(startTagMatch);
@@ -9316,12 +9436,24 @@ function parseHTML (html, options) {
   // Clean up any remaining tags
   parseEndTag();
 
+  /**
+   * 处理位置向前推进
+   */
   function advance (n) {
-    index += n;
-    html = html.substring(n);
+    //更新处理位置与html
+    index += n; 
+    html = html.substring(n); 
   }
 
+  /**
+   * 解析开始标记
+   * 获取标记名称与属性
+   * startTagOpen【^<((?:[a-zA-Z_][\w\-\.]*\:)?[a-zA-Z_][\w\-\.]*)】
+   * startTagClose【/^\s*(\/?)>/】
+   * attribute【/^\s*([^\s"'<>\/=]+)(?:\s*(=)\s*(?:"([^"]*)"+|'([^']*)'+|([^\s"'=<>`]+)))?/】
+   */
   function parseStartTag () {
+    //匹配开始标记的开始，如【<div】
     var start = html.match(startTagOpen);
     if (start) {
       var match = {
@@ -9329,12 +9461,17 @@ function parseHTML (html, options) {
         attrs: [],
         start: index
       };
+      //处理位置向前推进，推进距离为开始标记长度
       advance(start[0].length);
       var end, attr;
+      //非开始标记的结束，且能匹配到属性
       while (!(end = html.match(startTagClose)) && (attr = html.match(attribute))) {
+        //处理位置向前推进，推进距离为属性长度
         advance(attr[0].length);
+        //记录属性
         match.attrs.push(attr);
       }
+      //开始标记的结束，如【>】
       if (end) {
         match.unarySlash = end[1];
         advance(end[0].length);
@@ -9344,6 +9481,9 @@ function parseHTML (html, options) {
     }
   }
 
+  /**
+   * 处理开始标记
+   */
   function handleStartTag (match) {
     var tagName = match.tagName;
     var unarySlash = match.unarySlash;
@@ -9359,6 +9499,7 @@ function parseHTML (html, options) {
 
     var unary = isUnaryTag$$1(tagName) || !!unarySlash;
 
+    //将属性处理为[{name:name1,value:value1}]
     var l = match.attrs.length;
     var attrs = new Array(l);
     for (var i = 0; i < l; i++) {
@@ -9487,23 +9628,29 @@ function createASTElement (
 
 /**
  * Convert HTML string to AST.
+ * 将html转换为AST(抽象语法树)
  */
 function parse (
   template,
   options
 ) {
+  //错误提示方法
   warn$2 = options.warn || baseWarn;
 
+  //固化方法
   platformIsPreTag = options.isPreTag || no;
   platformMustUseProp = options.mustUseProp || no;
   platformGetTagNamespace = options.getTagNamespace || no;
 
+  //从options.modules提取方法
   transforms = pluckModuleFunction(options.modules, 'transformNode');
   preTransforms = pluckModuleFunction(options.modules, 'preTransformNode');
   postTransforms = pluckModuleFunction(options.modules, 'postTransformNode');
 
+  //纯文本插入分隔符，用于替换文本，如["{{", "}}"]
   delimiters = options.delimiters;
 
+  //定义一些变量
   var stack = [];
   var preserveWhitespace = options.preserveWhitespace !== false;
   var root;
@@ -9512,6 +9659,9 @@ function parse (
   var inPre = false;
   var warned = false;
 
+  /**
+   * 仅提示一次的方法
+   */
   function warnOnce (msg) {
     if (!warned) {
       warned = true;
@@ -9519,6 +9669,9 @@ function parse (
     }
   }
 
+  /**
+   * 关闭dom元素
+   */
   function closeElement (element) {
     // check pre state
     if (element.pre) {
@@ -9533,6 +9686,7 @@ function parse (
     }
   }
 
+  //解析html
   parseHTML(template, {
     warn: warn$2,
     expectHTML: options.expectHTML,
@@ -9713,7 +9867,7 @@ function parse (
       });
     }
   });
-  return root
+  return root;
 }
 
 function processPre (el) {
@@ -10105,6 +10259,9 @@ function checkForAliasModel (el, value) {
  *   <input v-if="type === 'checkbox'" type="checkbox" v-model="data[type]">
  *   <input v-else-if="type === 'radio'" type="radio" v-model="data[type]">
  *   <input v-else :type="type" v-model="data[type]">
+ *
+ *  预转换节点
+ *  将input动态绑定的节点，转换为v-if-else格式
  */
 
 function preTransformNode (el, options) {
@@ -10177,10 +10334,13 @@ var model$2 = {
   preTransformNode: preTransformNode
 }
 
+/**
+ * 用于baseOptions的modules参数
+ */
 var modules$1 = [
   klass$1,
   style$1,
-  model$2
+  model$2 
 ]
 
 /*  */
@@ -10207,7 +10367,7 @@ var directives$1 = {
 
 
 /**
- * 编译器参数
+ * 编译器基础配置
  */
 var baseOptions = {
   expectHTML: true,
@@ -10239,6 +10399,10 @@ var genStaticKeysCached = cached(genStaticKeys$1);
  * 1. Hoist them into constants, so that we no longer need to
  *    create fresh nodes for them on each re-render;
  * 2. Completely skip them in the patching process.
+ *
+ * 优化的目的：遍历生成的模板AST树并检测纯静态的子树，即不需要更改的DOM部分
+ * 1.将它们提升为常量，这样我们就不再需要在每次重新呈现时为它们创建新的节点
+ * 2.在修补过程中完全跳过它们
  */
 function optimize (root, options) {
   if (!root) { return }
@@ -11167,29 +11331,42 @@ function createCompileToFunctionFn (compile) {
   }
 }
 
-/*  */
-
+/**
+ * createCompiler构造器
+ * 通过baseCompile创建不同的createCompiler方法
+ */
 function createCompilerCreator (baseCompile) {
+  /**
+   * 根据baseOptions创建Compiler
+   * 返回compile与compileToFunctions
+   */
   return function createCompiler (baseOptions) {
-    function compile (
-      template,
-      options
-    ) {
-      //生成最终配置，baseOptions属于finalOptions的proto
+    /**
+     * 编译html
+     * template:html
+     * options:编译配置
+     */
+    function compile (template,options) {
+      //生成最终配置，设置finalOptions的proto为baseOptions
       var finalOptions = Object.create(baseOptions);
       var errors = [];
       var tips = [];
+
+      //设置warn方法
       finalOptions.warn = function (msg, tip) {
         (tip ? tips : errors).push(msg);
       };
 
+      //如果有options参数，则进行合并
       if (options) {
         // merge custom modules
+        // 自定义模块
         if (options.modules) {
           finalOptions.modules =
             (baseOptions.modules || []).concat(options.modules);
         }
         // merge custom directives
+        // 自定义指令
         if (options.directives) {
           finalOptions.directives = extend(
             Object.create(baseOptions.directives || null),
@@ -11197,6 +11374,7 @@ function createCompilerCreator (baseCompile) {
           );
         }
         // copy other options
+        // 其他配置
         for (var key in options) {
           if (key !== 'modules' && key !== 'directives') {
             finalOptions[key] = options[key];
@@ -11204,15 +11382,19 @@ function createCompilerCreator (baseCompile) {
         }
       }
 
+      //使用baseCompile编译html
       var compiled = baseCompile(template, finalOptions);
       {
         errors.push.apply(errors, detectErrors(compiled.ast));
       }
       compiled.errors = errors;
       compiled.tips = tips;
+
+      //返回编译后的html
       return compiled
     }
 
+    //返回compile与compileToFunctions方法
     return {
       compile: compile,
       compileToFunctions: createCompileToFunctionFn(compile)
@@ -11229,11 +11411,17 @@ var createCompiler = createCompilerCreator(function baseCompile (
   template,
   options
 ) {
+  //将html转换为AST(抽象语法树)
   var ast = parse(template.trim(), options);
+  console.log(ast);
+  //优化语法树
   if (options.optimize !== false) {
     optimize(ast, options);
   }
+
+  //生成
   var code = generate(ast, options);
+
   return {
     ast: ast,
     render: code.render,
