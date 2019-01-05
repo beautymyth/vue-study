@@ -9471,9 +9471,11 @@ function parseHTML (html, options) {
         //记录属性
         match.attrs.push(attr);
       }
-      //开始标记的结束，如【>】
+      //开始标记的结束，如【>】或【/>】
       if (end) {
-        match.unarySlash = end[1];
+        //一元削减符，如【/】
+        //标签不需要显式闭合，如【<input type="text" name="a" />】
+        match.unarySlash = end[1];  
         advance(end[0].length);
         match.end = index;
         return match
@@ -9497,6 +9499,7 @@ function parseHTML (html, options) {
       }
     }
 
+    //是否一元标签
     var unary = isUnaryTag$$1(tagName) || !!unarySlash;
 
     //将属性处理为[{name:name1,value:value1}]
@@ -9511,6 +9514,7 @@ function parseHTML (html, options) {
         if (args[5] === '') { delete args[5]; }
       }
       var value = args[3] || args[4] || args[5] || '';
+      //对属性值进行特殊字符【】的编码
       var shouldDecodeNewlines = tagName === 'a' && args[1] === 'href'
         ? options.shouldDecodeNewlinesForHref
         : options.shouldDecodeNewlines;
@@ -9520,6 +9524,7 @@ function parseHTML (html, options) {
       };
     }
 
+    //非一元标签，标签入栈，用于之后处理标签的闭合
     if (!unary) {
       stack.push({ tag: tagName, lowerCasedTag: tagName.toLowerCase(), attrs: attrs });
       lastTag = tagName;
@@ -9530,6 +9535,9 @@ function parseHTML (html, options) {
     }
   }
 
+  /**
+   * 解析结束标记
+   */
   function parseEndTag (tagName, start, end) {
     var pos, lowerCasedTagName;
     if (start == null) { start = index; }
