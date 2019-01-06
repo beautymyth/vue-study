@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>props入门</title>
+    <script src="../../vue/vue.js"></script>
+</head>
+
+<body>
+    <div id="app">
+    	<blog-post id=1 title='11'></blog-post>
+    	<blog-post
+		  v-for="blog in blogs"
+		  v-bind:id="blog.id"
+		  v-bind:title="blog.title"
+		></blog-post>
+    </div>
+    <script src="props1.js"></script>
+</body>
+
+</html>
