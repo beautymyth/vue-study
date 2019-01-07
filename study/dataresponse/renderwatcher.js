@@ -12,6 +12,11 @@ var app = new Vue({
             b2: 4
         },
         c: 5
+    },
+    methods:{
+        clickaa:function(){
+            alert(1);
+        }
     }
 });
 
