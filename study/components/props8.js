@@ -1,19 +1,16 @@
 
 
 Vue.component('blog-post', {
-    inheritAttrs: false,
+    inheritAttrs: false,//控制根元素是否设置$attrs
     props: {
         propA: String
     },
-    data:function(){
-        return {
-            other1:'other1old'
-        };
-    },
-    template: `<div>
-        <h3 v-bind='$attrs' :other1='other1'>propA:{{propA}}</h3>      
+    template: `
+    <div type='test'>
+        <h3 v-bind='$attrs'>propA:{{propA}}</h3>      
         <input type="date" class="form-control">
-    </div>`
+    </div>
+    `
 })
 
 var app = new Vue({
