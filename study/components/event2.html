@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>组件v-model</title>
+    <script src="../../vue/vue.js"></script>
+</head>
+
+<body>
+    <div id="app">
+    	<!--简单方式-->
+        <custom-input v-model="searchText"></custom-input>
+        <!--v-model展开方式-->
+        <custom-input v-bind:value="searchText" v-on:input="searchText = $event"></custom-input>
+    </div>
+    <script src="event2.js"></script>
+</body>
+
+</html>

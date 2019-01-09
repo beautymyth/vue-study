@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>插槽</title>
+    <script src="../../vue/vue.js"></script>
+</head>
+
+<body>
+    <div id="app">
+        <!--类似于html向组件传递内容-->
+        <alert-box>     
+            <!--传递内容给无name的slot-->       
+            Something bad happened
+            <!--传递内容给指定name的slot-->
+            <template slot="a">
+                <h1>Something bad happened a.</h1>
+            </template>
+            <template slot="b">
+                <h1>Something bad happened b.</h1>
+            </template>
+        </alert-box>
+    </div>
+    <script src="slot1.js"></script>
+</body>
+
+</html>

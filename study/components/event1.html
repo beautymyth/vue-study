@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>向父组件传递事件</title>
+    <script src="../../vue/vue.js"></script>
+</head>
+
+<body>
+    <div id="app">
+    	<blog-post v-bind='blog' other1='other1' type='text' @parent='parentEvent'></blog-post>
+    </div>
+    <script src="event1.js"></script>
+</body>
+
+</html>
